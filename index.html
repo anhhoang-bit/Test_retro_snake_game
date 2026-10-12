@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Snake Matrix - Ultimate Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Press Start 2P', monospace;
+            background-color: #070913;
+            color: #38bdf8;
+            touch-action: manipulation;
+            user-select: none;
+        }
+        .retro-shadow {
+            box-shadow: 0 0 25px rgba(14, 165, 233, 0.25), 6px 6px 0px #0284c7;
+        }
+        .retro-btn {
+            box-shadow: 3px 3px 0px #0369a1;
+            transition: transform 0.05s, box-shadow 0.05s, background-color 0.2s;
+            cursor: pointer;
+        }
+        .retro-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0px #0369a1;
+        }
+        .speed-btn.active, .map-btn.active-map {
+            background-color: #22c55e !important;
+            color: #000 !important;
+            box-shadow: 3px 3px 0px #15803d !important;
+        }
+        canvas {
+            image-rendering: pixelated;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-2 md:p-4">
+
+    <header class="w-full max-w-md text-center py-1">
+        <h1 class="text-lg md:text-2xl font-bold text-green-400 mb-2 tracking-wider drop-shadow-[0_2px_8px_rgba(34,197,94,0.6)]">SNAKE MATRIX</h1>
+        <div class="flex justify-between items-center bg-slate-800/90 p-2.5 rounded-lg border-2 border-slate-700 text-xs shadow-inner">
+            <div>SCORE: <span id="score" class="text-yellow-400">0</span></div>
+            <div>HIGH: <span id="highScore" class="text-purple-400">0</span></div>
+        </div>
+    </header>
+
+    <main class="flex flex-col items-center justify-center my-auto w-full max-w-md gap-2">
+        <!-- Dashboard Control Panel -->
+        <div class="w-full bg-slate-800/80 border-2 border-slate-700 rounded-lg p-2.5 flex flex-col gap-2 text-[10px]">
+            <!-- Map Selection -->
+            <div class="flex justify-between items-center text-slate-300">
+                <span>MATRIX MAP:</span>
+            </div>
+            <div class="grid grid-cols-4 gap-1.5">
+                <button id="mapClassic" class="map-btn active-map retro-btn bg-slate-700 text-slate-200 py-1.5 rounded text-[8px] font-bold">CLASSIC</button>
+                <button id="mapBox" class="map-btn retro-btn bg-slate-700 text-slate-200 py-1.5 rounded text-[8px] font-bold">BOX</button>
+                <button id="mapMaze" class="map-btn retro-btn bg-slate-700 text-slate-200 py-1.5 rounded text-[8px] font-bold">MAZE</button>
+                <button id="mapCross" class="map-btn retro-btn bg-slate-700 text-slate-200 py-1.5 rounded text-[8px] font-bold">CROSS</button>
+            </div>
+
+            <!-- Speed & BGM Toggles -->
+            <div class="flex justify-between items-center text-slate-300 mt-1">
+                <span>SPEED:</span>
+                <button id="bgmBtn" class="retro-btn bg-slate-700 text-slate-200 px-2 py-1 rounded text-[8px] font-bold">🔇 BGM: OFF</button>
+            </div>
+            <div class="grid grid-cols-4 gap-1.5">
+                <button id="speedSlow" class="speed-btn retro-btn bg-slate-700 text-slate-200 py-1 rounded text-[8px] font-bold">SLOW</button>
+                <button id="speedNorm" class="speed-btn active retro-btn bg-slate-700 text-slate-200 py-1 rounded text-[8px] font-bold">NORM</button>
+                <button id="speedFast" class="speed-btn retro-btn bg-slate-700 text-slate-200 py-1 rounded text-[8px] font-bold">FAST</button>
+                <button id="speedTurbo" class="speed-btn retro-btn bg-slate-700 text-slate-200 py-1 rounded text-[8px] font-bold">TURBO</button>
+            </div>
+        </div>
+
+        <!-- Game Canvas Area -->
+        <div class="relative bg-slate-900 border-4 border-slate-700 rounded-xl p-2 retro-shadow">
+            <canvas id="gameCanvas" width="360" height="360" class="w-full max-w-[360px] aspect-square bg-black rounded-lg block"></canvas>
+            
+            <!-- Overlay for Start / Game Over -->
+            <div id="gameOverlay" class="absolute inset-0 bg-black/85 flex flex-col items-center justify-center rounded-lg p-6 text-center backdrop-blur-sm z-10">
+                <h2 id="overlayTitle" class="text-lg md:text-xl text-green-400 mb-3 tracking-widest drop-shadow">READY?</h2>
+                <p id="overlaySubtitle" class="text-[11px] text-slate-300 mb-5 leading-relaxed">Choose your map & speed, then press start!</p>
+                <button id="startBtn" class="retro-btn bg-green-500 hover:bg-green-400 text-black px-6 py-3 rounded text-xs font-bold uppercase tracking-wider">
+                    Start Game
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="w-full max-w-md mt-1">
+        <div class="grid grid-cols-3 gap-2 max-w-[220px] mx-auto">
+            <div></div>
+            <button id="btnUp" class="retro-btn bg-slate-800 hover:bg-slate-700 text-white h-11 rounded-lg flex items-center justify-center text-lg border border-slate-700">▲</button>
+            <div></div>
+            <button id="btnLeft" class="retro-btn bg-slate-800 hover:bg-slate-700 text-white h-11 rounded-lg flex items-center justify-center text-lg border border-slate-700">◀</button>
+            <button id="btnDown" class="retro-btn bg-slate-800 hover:bg-slate-700 text-white h-11 rounded-lg flex items-center justify-center text-lg border border-slate-700">▼</button>
+            <button id="btnRight" class="retro-btn bg-slate-800 hover:bg-slate-700 text-white h-11 rounded-lg flex items-center justify-center text-lg border border-slate-700">▶</button>
+        </div>
+    </footer>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const highScoreEl = document.getElementById('highScore');
+        const gameOverlay = document.getElementById('gameOverlay');
+        const overlayTitle = document.getElementById('overlayTitle');
+        const overlaySubtitle = document.getElementById('overlaySubtitle');
+        const startBtn = document.getElementById('startBtn');
+        const bgmBtn = document.getElementById('bgmBtn');
+
+        const gridSize = 20;
+        const tileCount = 18;
+        
+        let snake = [];
+        let food = { x: 5, y: 5 };
+        let dx = 1;
+        let dy = 0;
+        let nextDx = 1;
+        let nextDy = 0;
+        let score = 0;
+        let highScore = localStorage.getItem('snakeHighScore') || 0;
+        let gameInterval = null;
+        let isPlaying = false;
+        let gameSpeed = 100;
+        let currentMapKey = 'classic';
+
+        // Safe Web Audio API Sound & BGM System
+        let audioCtx = null;
+        let isBgmOn = false;
+        let bgmInterval = null;
+        const bgmNotes = [220, 247.05, 277.18, 329.63, 369.99, 440, 493.88, 554.37];
+        let noteIndex = 0;
+
+        function initAudio() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            } catch(e) {
+                console.log("Audio not supported or blocked", e);
+            }
+        }
+
+        function playSound(type) {
+            try {
+                initAudio();
+                if (!audioCtx) return;
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'eat') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'gameOver') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.linearRampToValueAtTime(60, now + 0.4);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                } else if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(450, now);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.03);
+                    osc.start(now);
+                    osc.stop(now + 0.03);
+                }
+            } catch(e) {}
+        }
+
+        function playBgmNote() {
+            if (!isBgmOn || !audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(bgmNotes[noteIndex], now);
+                noteIndex = (noteIndex + 1) % bgmNotes.length;
+                
+                gain.gain.setValueAtTime(0.03, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.2);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } catch(e) {}
+        }
+
+        function toggleBGM() {
+            playSound('click');
+            isBgmOn = !isBgmOn;
+            if (isBgmOn) {
+                initAudio();
+                bgmBtn.textContent = '🔊 BGM: ON';
+                bgmBtn.classList.add('bg-green-600', 'text-black');
+                if (bgmInterval) clearInterval(bgmInterval);
+                bgmInterval = setInterval(playBgmNote, 240);
+            } else {
+                bgmBtn.textContent = '🔇 BGM: OFF';
+                bgmBtn.classList.remove('bg-green-600', 'text-black');
+                if (bgmInterval) clearInterval(bgmInterval);
+            }
+        }
+
+        // Map definitions
+        const maps = {
+            classic: { name: 'CLASSIC', obstacles: [] },
+            box: {
+                name: 'BOX MATRIX',
+                obstacles: [
+                    {x: 4, y: 4}, {x: 5, y: 4}, {x: 6, y: 4},
+                    {x: 11, y: 4}, {x: 12, y: 4}, {x: 13, y: 4},
+                    {x: 4, y: 13}, {x: 5, y: 13}, {x: 6, y: 13},
+                    {x: 11, y: 13}, {x: 12, y: 13}, {x: 13, y: 13}
+                ]
+            },
+            maze: {
+                name: 'MAZE LAB',
+                obstacles: [
+                    {x: 8, y: 4}, {x: 8, y: 5}, {x: 8, y: 6},
+                    {x: 9, y: 11}, {x: 9, y: 12}, {x: 9, y: 13},
+                    {x: 3, y: 9}, {x: 4, y: 9}, {x: 13, y: 9}, {x: 14, y: 9}
+                ]
+            },
+            cross: {
+                name: 'CYBER CROSS',
+                obstacles: [
+                    {x: 8, y: 8}, {x: 9, y: 8}, {x: 8, y: 9}, {x: 9, y: 9},
+                    {x: 3, y: 3}, {x: 14, y: 3}, {x: 3, y: 14}, {x: 14, y: 14}
+                ]
+            }
+        };
+
+        highScoreEl.textContent = highScore;
+
+        // Button Event Listeners Setup
+        function setupButtonListeners() {
+            // Map buttons
+            document.getElementById('mapClassic').addEventListener('click', () => setMap('classic', 'mapClassic'));
+            document.getElementById('mapBox').addEventListener('click', () => setMap('box', 'mapBox'));
+            document.getElementById('mapMaze').addEventListener('click', () => setMap('maze', 'mapMaze'));
+            document.getElementById('mapCross').addEventListener('click', () => setMap('cross', 'mapCross'));
+
+            // Speed buttons
+            document.getElementById('speedSlow').addEventListener('click', () => setSpeed(140, 'speedSlow'));
+            document.getElementById('speedNorm').addEventListener('click', () => setSpeed(100, 'speedNorm'));
+            document.getElementById('speedFast').addEventListener('click', () => setSpeed(70, 'speedFast'));
+            document.getElementById('speedTurbo').addEventListener('click', () => setSpeed(45, 'speedTurbo'));
+
+            // BGM Button
+            bgmBtn.addEventListener('click', toggleBGM);
+
+            // Start Button
+            startBtn.addEventListener('click', startGame);
+
+            // D-Pad Controls
+            document.getElementById('btnUp').addEventListener('click', () => changeDirection(0, -1));
+            document.getElementById('btnDown').addEventListener('click', () => changeDirection(0, 1));
+            document.getElementById('btnLeft').addEventListener('click', () => changeDirection(-1, 0));
+            document.getElementById('btnRight').addEventListener('click', () => changeDirection(1, 0));
+        }
+
+        function setMap(mapKey, btnId) {
+            playSound('click');
+            currentMapKey = mapKey;
+            document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('active-map'));
+            document.getElementById(btnId).classList.add('active-map');
+            
+            if (isPlaying) {
+                startGame();
+            } else {
+                initGame();
+                draw();
+            }
+        }
+
+        function setSpeed(speedVal, btnId) {
+            playSound('click');
+            gameSpeed = speedVal;
+            document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(btnId).classList.add('active');
+
+            if (isPlaying) {
+                clearInterval(gameInterval);
+                gameInterval = setInterval(gameLoop, gameSpeed);
+            }
+        }
+
+        function showMessage(title, subtitle, btnText) {
+            overlayTitle.textContent = title;
+            overlaySubtitle.innerHTML = subtitle.replace('\n', '<br>');
+            startBtn.textContent = btnText;
+            gameOverlay.classList.remove('hidden');
+        }
+
+        function initGame() {
+            snake = [
+                { x: 9, y: 9 },
+                { x: 8, y: 9 },
+                { x: 7, y: 9 }
+            ];
+            score = 0;
+            scoreEl.textContent = score;
+            dx = 1;
+            dy = 0;
+            nextDx = 1;
+            nextDy = 0;
+            spawnFood();
+        }
+
+        function spawnFood() {
+            let valid = false;
+            while (!valid) {
+                food.x = Math.floor(Math.random() * tileCount);
+                food.y = Math.floor(Math.random() * tileCount);
+                valid = true;
+                
+                for (let part of snake) {
+                    if (part.x === food.x && part.y === food.y) {
+                        valid = false;
+                        break;
+                    }
+                }
+                for (let obs of maps[currentMapKey].obstacles) {
+                    if (obs.x === food.x && obs.y === food.y) {
+                        valid = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        function startGame() {
+            initAudio();
+            initGame();
+            gameOverlay.classList.add('hidden');
+            isPlaying = true;
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(gameLoop, gameSpeed);
+        }
+
+        function gameLoop() {
+            update();
+            if (checkGameOver()) {
+                endGame();
+                return;
+            }
+            draw();
+        }
+
+        function update() {
+            dx = nextDx;
+            dy = nextDy;
+
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+
+            if (head.x === food.x && head.y === food.y) {
+                playSound('eat');
+                score += 10;
+                scoreEl.textContent = score;
+                if (score > highScore) {
+                    highScore = score;
+                    highScoreEl.textContent = highScore;
+                    localStorage.setItem('snakeHighScore', highScore);
+                }
+                spawnFood();
+            } else {
+                snake.pop();
+            }
+
+            snake.unshift(head);
+        }
+
+        function checkGameOver() {
+            const head = snake[0];
+            
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+                playSound('gameOver');
+                return true;
+            }
+            
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    playSound('gameOver');
+                    return true;
+                }
+            }
+
+            for (let obs of maps[currentMapKey].obstacles) {
+                if (head.x === obs.x && head.y === obs.y) {
+                    playSound('gameOver');
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        function endGame() {
+            isPlaying = false;
+            clearInterval(gameInterval);
+            showMessage('GAME OVER', `Score: ${score}<br>High Score: ${highScore}`, 'Play Again');
+        }
+
+        function changeDirection(newDx, newDy) {
+            if (!isPlaying) return;
+            // Prevent 180-degree reverse turns
+            if (newDx !== 0 && dx === 0) {
+                nextDx = newDx;
+                nextDy = 0;
+            } else if (newDy !== 0 && dy === 0) {
+                nextDx = 0;
+                nextDy = newDy;
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#030712';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Grid lines
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < tileCount; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * gridSize, 0);
+                ctx.lineTo(i * gridSize, canvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * gridSize);
+                ctx.lineTo(canvas.width, i * gridSize);
+                ctx.stroke();
+            }
+
+            // Obstacles
+            maps[currentMapKey].obstacles.forEach(obs => {
+                ctx.save();
+                ctx.fillStyle = '#475569';
+                ctx.shadowColor = '#0ea5e9';
+                ctx.shadowBlur = 6;
+                ctx.fillRect(obs.x * gridSize + 1, obs.y * gridSize + 1, gridSize - 2, gridSize - 2);
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(obs.x * gridSize + 4, obs.y * gridSize + 4, gridSize - 8, gridSize - 8);
+                ctx.restore();
+            });
+
+            // Food
+            const fx = food.x * gridSize + gridSize / 2;
+            const fy = food.y * gridSize + gridSize / 2;
+            ctx.save();
+            ctx.shadowColor = '#ef4444';
+            ctx.shadowBlur = 12;
+            ctx.fillStyle = '#f87171';
+            ctx.beginPath();
+            ctx.arc(fx, fy, gridSize / 2 - 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fca5a5';
+            ctx.beginPath();
+            ctx.arc(fx - 2, fy - 2, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Snake
+            snake.forEach((part, index) => {
+                const px = part.x * gridSize + 1;
+                const py = part.y * gridSize + 1;
+                const pSize = gridSize - 2;
+
+                if (index === 0) {
+                    ctx.save();
+                    ctx.shadowColor = '#22c55e';
+                    ctx.shadowBlur = 10;
+                    ctx.fillStyle = '#4ade80';
+                    ctx.fillRect(px, py, pSize, pSize);
+                    
+                    // Eyes
+                    ctx.fillStyle = '#000';
+                    let eye1x = px + 4, eye1y = py + 4;
+                    let eye2x = px + 12, eye2y = py + 4;
+                    if (dx === 1) { eye1x = px+12; eye1y = py+4; eye2x = px+12; eye2y = py+12; }
+                    else if (dx === -1) { eye1x = px+4; eye1y = py+4; eye2x = px+4; eye2y = py+12; }
+                    else if (dy === 1) { eye1x = px+4; eye1y = py+12; eye2x = px+12; eye2y = py+12; }
+                    
+                    ctx.fillRect(eye1x, eye1y, 3, 3);
+                    ctx.fillRect(eye2x, eye2y, 3, 3);
+                    ctx.restore();
+                } else {
+                    const greenIntensity = Math.max(120, 200 - index * 3);
+                    ctx.fillStyle = `rgb(34, ${greenIntensity}, 94)`;
+                    ctx.fillRect(px, py, pSize, pSize);
+                }
+            });
+        }
+
+        // Keyboard controls
+        window.addEventListener('keydown', e => {
+            switch(e.key) {
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    changeDirection(0, -1);
+                    e.preventDefault();
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    changeDirection(0, 1);
+                    e.preventDefault();
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    changeDirection(-1, 0);
+                    e.preventDefault();
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    changeDirection(1, 0);
+                    e.preventDefault();
+                    break;
+            }
+        });
+
+        // Initialize button listeners & initial render
+        setupButtonListeners();
+        draw();
+    </script>
+</body>
+</html>
